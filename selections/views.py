@@ -38,18 +38,15 @@ def download_csv_tier_report(request, tier_code):
     return response
 
 
-def download_excel_tier_report(request, tier_code):
+def download_excel_tier_report(request):
     tiers = dict(Selection.TIER_CHOICES)
 
-    if tier_code not in tiers:
-        return HttpResponse("Turma inválida.", status=400)
-
-    selections = Selection.objects.filter(tier=tier_code).select_related('teacher')
+    selections = Selection.objects.select_related('teacher').order_by('tier')
 
     # Criar um arquivo Excel
     workbook = openpyxl.Workbook()
     sheet = workbook.active
-    sheet.title = f"Relatório {tiers[tier_code]}"  # Nome da aba no Excel
+    sheet.title = f"Relatório"  # Nome da aba no Excel
 
     # Estilização do cabeçalho
     headers = ["Nome do Aluno", "Email", "Número de Telefone", "Turma", "Professor"]
@@ -73,20 +70,33 @@ def download_excel_tier_report(request, tier_code):
         bottom=Side(style="thin")
     )
 
-    for row_index, selection in enumerate(selections, start=2):
+    previous_tier = None
+    row_index = 2  # Começa a partir da linha 2 para as seleções
+    for selection in selections:
+        # Verifica se a turma mudou, se sim, adiciona uma linha em branco
+        if selection.tier != previous_tier:
+            if previous_tier is not None:  # Para evitar linha extra no início
+                sheet.append([])  # Linha em branco entre turmas
+                row_index += 1  # Avança a linha para a próxima turma
+            previous_tier = selection.tier
+
+        # Adiciona os dados da seleção
         row_data = [
             selection.student_name,
             selection.email,
             selection.phone_number,
-            tiers[tier_code],  # Nome completo da turma
+            selection.tier,
             selection.teacher.name
         ]
         sheet.append(row_data)
 
-        for cell in sheet[row_index]:  
+        # Estilização da linha (bordas e cor alternada)
+        for cell in sheet[row_index]:
             cell.border = thin_border
             if row_index % 2 == 0:  # Aplica fundo alternado nas linhas pares
-                cell.fill = row_fill  
+                cell.fill = row_fill
+
+        row_index += 1  # Avança para a próxima linha
 
     # Ajustar automaticamente a largura das colunas
     for col in sheet.columns:
@@ -102,7 +112,7 @@ def download_excel_tier_report(request, tier_code):
 
     # Configurar a resposta HTTP para download do Excel
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="{tier_code}.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="Relatório.xlsx"'
 
     # Salvar o arquivo Excel na resposta HTTP
     workbook.save(response)
