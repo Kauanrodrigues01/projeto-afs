@@ -46,8 +46,8 @@ class SelectionForm(forms.ModelForm):
         teacher = self.cleaned_data.get('teacher')
         if not teacher:
             raise forms.ValidationError('Selecione um professor.')
-        if Selection.objects.filter(teacher=teacher).count() >= 9:
-            raise forms.ValidationError('Este professor já foi escolhido pelo limite máximo de alunos. (9 alunos)')
+        if Selection.objects.filter(teacher=teacher).count() >= 8:
+            raise forms.ValidationError('Este professor já foi escolhido pelo limite máximo de alunos. (8 alunos)')
         return teacher
 
     def clean_phone_number(self):
