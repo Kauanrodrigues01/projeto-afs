@@ -44,7 +44,7 @@ def get_teachers_data(request):
     teachers = Teacher.objects.annotate(
         num_selections=Count('selections'),
         is_available=Case(
-            When(num_selections__gte=9, then=Value(False)),  # Indisponível se tiver 9 ou mais seleções
+            When(num_selections__gte=8, then=Value(False)),  # Indisponível se tiver 9 ou mais seleções
             default=Value(True),
             output_field=BooleanField()
         )
